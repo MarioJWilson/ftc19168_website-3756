@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link, useLocation } from "wouter";
 import {
   ArrowUpRight,
   ArrowRight,
@@ -9,27 +10,32 @@ import {
   Code2,
   Wrench,
   Users,
-  Instagram,
-  Youtube,
   Mail,
   Heart,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
 
-import { galleryItems, galleryFilters, gameFields } from "../lib/gallery";
+import { galleryItems, galleryFilters, gameFields, hornetStartIndex } from "../lib/gallery";
+import { TeamStory } from "../components/team-story";
+import { BioBuzzGuide } from "../components/biobuzz-guide";
+import { RobotShowcase } from "../components/robot-showcase";
+import { TeamContact, SocialIcon } from "../components/team-contact";
+import { donateUrl, socialLinks, teamEmail, whatsappUrl } from "../lib/contact";
+import { members } from "../lib/members";
+import { MemberBadges } from "../components/member-badges";
+import { FieldBadge } from "../components/field-badge";
+import { ContactForm } from "../components/contact-form";
+import { TypedHeadline, TechGears, ExplorePages } from "../components/tech-effects";
 
-const people = ["Aiden", "Jared", "Mario", "Nicholas", "Peter", "Vivan", "Willy"];
 const links = [
-  { name: "The team", id: "team" },
-  { name: "Our season", id: "season" },
-  { name: "Gallery", id: "gallery" },
-  { name: "Support us", id: "support" },
+  { name: "Home", path: "/" },
+  { name: "Team", path: "/team" },
+  { name: "Season & Robot", path: "/season" },
+  { name: "Gallery", path: "/gallery" },
+  { name: "Support", path: "/support" },
 ];
-type Popup =
-  | { type: "member"; index: number }
-  | { type: "gallery"; index: number }
-  | { type: "notice"; title: string; text: string };
+type Popup = { type: "member"; index: number } | { type: "gallery"; index: number } | { type: "contact" };
 function Geometry({ className = "" }: { className?: string }) {
   return (
     <div className={`geometry ${className}`} aria-hidden="true">
@@ -40,17 +46,35 @@ function Geometry({ className = "" }: { className?: string }) {
   );
 }
 export default function Home() {
+  const [page] = useLocation();
   const [menu, setMenu] = useState(false);
   const [popup, setPopup] = useState<Popup | null>(null);
   const [galleryFilter, setGalleryFilter] = useState("All photos");
   const dialog = useRef<HTMLDialogElement>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const main = useRef<HTMLElement>(null);
+  const firstPage = useRef(true);
+  useEffect(() => {
+    setMenu(false);
+    setPopup(null);
+    window.scrollTo({ top: 0, behavior: "instant" });
+    const title = links.find((link) => link.path === page)?.name ?? "Page not found";
+    document.title = `Totus Tuus · ${title} · FTC 19168`;
+    if (!firstPage.current) main.current?.focus({ preventScroll: true });
+    firstPage.current = false;
+  }, [page]);
   useEffect(() => {
     if (popup) {
+      if (!dialog.current?.open) {
+        returnFocus.current = document.activeElement as HTMLElement;
+      }
       dialog.current?.showModal();
       document.body.style.overflow = "hidden";
     } else {
       dialog.current?.close();
       document.body.style.overflow = "";
+      if (returnFocus.current?.isConnected) returnFocus.current.focus({ preventScroll: true });
+      returnFocus.current = null;
     }
     return () => {
       document.body.style.overflow = "";
@@ -64,37 +88,30 @@ export default function Home() {
     element?.addEventListener("click", closeBackdrop);
     return () => element?.removeEventListener("click", closeBackdrop);
   }, []);
-  const pending = (title: string, text: string) => setPopup({ type: "notice", title, text });
-  const support = () =>
-    pending(
-      "A little support. A big impact.",
-      "Online donations are not connected yet. The team’s verified donation link will appear here once provided. No payment is collected on this site.",
-    );
-  const contact = () =>
-    pending(
-      "Let’s build a connection.",
-      "The team’s contact email has not been provided yet. This section is ready for recruitment, sponsorship, and community inquiries once the verified address is added.",
-    );
+  const contact = () => {
+    setMenu(false);
+    setPopup({ type: "contact" });
+  };
   return (
     <>
       <a className="skip" href="#main">
         Skip to content
       </a>
       <header id="top" className="header">
-        <a href="#top" className="brand" aria-label="Totus Tuus home">
+        <Link href="/" className="brand" aria-label="Totus Tuus home">
           <img src="/images/crest-cutout.png" alt="Totus Tuus crest" />
           <span>
             TOTUS TUUS<small>FIRST TECH CHALLENGE · 19168</small>
           </span>
-        </a>
+        </Link>
         <nav aria-label="Main navigation" className={menu ? "open" : ""}>
           {links.map((l) => (
-            <a key={l.id} href={"#" + l.id} onClick={() => setMenu(false)}>
+            <Link key={l.path} href={l.path} aria-current={page === l.path ? "page" : undefined} onClick={() => setMenu(false)}>
               {l.name}
-            </a>
+            </Link>
           ))}
           <button className="button light small" onClick={contact}>
-            Let’s connect <ArrowUpRight size={15} />
+            Contact us <ArrowUpRight size={15} />
           </button>
         </nav>
         <button
@@ -106,34 +123,32 @@ export default function Home() {
           {menu ? <X /> : <Menu />}
         </button>
       </header>
-      <main id="main">
+      <main id="main" ref={main} tabIndex={-1}>
+        {page === "/" && <>
         <section className="hero wrap">
           <div className="hero-copy">
             <div className="eyebrow">
               <span className="dot" /> FIRST TECH CHALLENGE TEAM 19168
             </div>
-            <h1>
-              MORE THAN
-              <br />A ROBOT.
-              <br /> <span>A TEAM.</span>
-            </h1>
+            <TypedHeadline />
             <p>
-              We are Totus Tuus. Curious minds, hands-on builders, and a shared drive to turn big
-              ideas into something real.
+              Totus Tuus is a Catholic robotics team of young men in high school, united by a
+              passion for engineering, personal growth, and excellence.
             </p>
-            <a href="#team" className="button mint">
+            <Link href="/team" className="button mint">
               Meet the team <ArrowUpRight size={19} />
-            </a>
-            <a className="text-link" href="#season">
+            </Link>
+            <Link className="text-link" href="/season">
               Explore our season <ArrowRight size={17} />
-            </a>
+            </Link>
           </div>
           <div className="hero-art">
             <div className="art-grid" />
-            <span className="art-label">BUILT ON CURIOSITY. DRIVEN BY TEAMWORK.</span>
+            <span className="art-label">BUILT BY STUDENTS. FOR STUDENTS.</span>
             <div className="frame f1" />
             <div className="frame f2" />
             <div className="frame f3" />
+            <TechGears />
             <span className="giant-number" aria-hidden="true">
               19168
             </span>
@@ -144,82 +159,30 @@ export default function Home() {
             />
             <Geometry className="hero-geometry" />
             <div className="art-bottom">
-              <span>DESIGN. BUILD. BELIEVE.</span>
+              <span>DESIGN. CODE. ACHIEVE.</span>
               <span>FTC / 19168 ↗</span>
             </div>
           </div>
           <div className="hero-foot">
-            <span>SMALL TEAM. BIG POSSIBILITIES.</span>
-            <a href="#about">
-              Get to know us <span>↓</span>
-            </a>
+            <span className="terminal-status"><span className="dot" /> SYSTEM ONLINE / TEAM 19168<span className="terminal-cursor">_</span></span>
+            <Link href="/team">
+              Get to know us <span>↗</span>
+            </Link>
           </div>
         </section>
         <div className="ticker" aria-hidden="true">
-          <span>ENGINEER WITH PURPOSE</span>
+          <span>INNOVATE.</span>
           <Plus />
-          <span>BUILD TOGETHER</span>
+          <span>ITERATE.</span>
           <Plus />
-          <span>KEEP EXPLORING</span>
+          <span>INSPIRE.</span>
           <Plus />
-          <span>ENGINEER WITH PURPOSE</span>
+          <span>INNOVATE.</span>
           <Plus />
         </div>
-        <section id="about" className="about wrap section">
-          <div className="section-index">01 / WHO WE ARE</div>
-          <div className="about-content">
-            <h2>
-              WE BUILD ROBOTS.
-              <br />
-              <span>
-                AND THE PEOPLE
-                <br />
-                BEHIND THEM.
-              </span>
-            </h2>
-            <div className="about-details">
-              <p>
-                Totus Tuus brings together a team of builders, thinkers, and problem-solvers in
-                FIRST Tech Challenge. Robotics is our starting point. Collaboration is what moves us
-                forward.
-              </p>
-              <p>
-                From a first sketch to a working mechanism, every challenge is a chance to learn,
-                experiment, and make something better—together.
-              </p>
-              <a
-                href="https://www.firstinspires.org/programs/ftc/"
-                target="_blank"
-                rel="noreferrer"
-                className="text-link"
-              >
-                What is FIRST Tech Challenge? <ArrowUpRight size={18} />
-              </a>
-            </div>
-          </div>
-          <div className="stats">
-            <div className="stat outline">
-              <span>19168</span>
-              <p>OUR TEAM NUMBER</p>
-              <small>One identity. A shared ambition.</small>
-            </div>
-            <div className="stat filled">
-              <span>7</span>
-              <p>FACES BEHIND THE TEAM</p>
-              <small>Meet the people making it happen.</small>
-            </div>
-            <div className="stat story">
-              <Code2 size={28} />
-              <h3>Ideas into action.</h3>
-              <p>
-                Design. Code. Test. Repeat.
-                <br />
-                The process is part of the adventure.
-              </p>
-            </div>
-          </div>
-          <Geometry className="about-geometry" />
-        </section>
+        <ExplorePages />
+        </>}
+        {page === "/team" && <>
         <section id="team" className="wrap section team">
           <div className="section-top">
             <div>
@@ -237,26 +200,29 @@ export default function Home() {
             </p>
           </div>
           <div className="people-grid">
-            {people.map((name, i) => (
+            {members.map((member, i) => (
               <button
                 className="person"
-                key={name}
+                key={member.name}
+                aria-label={`View profile: ${member.name}`}
                 onClick={() => setPopup({ type: "member", index: i })}
               >
                 <div className="portrait">
-                  <span className="portrait-index">{String(i + 1).padStart(2, "0")} / TT</span>
-                  <img src={`/images/${name.toLowerCase()}.png`} alt={name} loading="lazy" />
+                  <span className="portrait-index">{member.coach ? "COACH / TT" : `${String(i + 1).padStart(2, "0")} / TT`}</span>
+                  <img src={member.image} alt={member.name} loading="lazy" />
+                  <FieldBadge role={member.fieldRole} />
                   <div className="portrait-arrow">
                     <ArrowUpRight size={22} />
                   </div>
                 </div>
                 <div className="person-info">
-                  <h3>{name}</h3>
+                  <h3>{member.name}</h3>
                   <span>
                     View profile <Plus size={15} />
                   </span>
                 </div>
-                <p>Role & biography coming soon</p>
+                <MemberBadges specializations={member.specializations} />
+                <p className="member-roles">{member.roles.join(" · ")}</p>
               </button>
             ))}
             <div className="join-panel">
@@ -275,14 +241,20 @@ export default function Home() {
             </div>
           </div>
         </section>
+        <details className="page-disclosure wrap">
+          <summary>Our mission, faith & life beyond robotics <Plus size={22} /></summary>
+          <TeamStory />
+        </details>
+        </>}
+        {page === "/season" && <>
         <section id="season" className="season section">
           <div className="wrap season-grid">
             <div>
               <div className="section-index">03 / THE CURRENT CHALLENGE</div>
               <h2>
-                A NEW SEASON.
+                WHAT’S THE BUZZ
                 <br />
-                <span>A NEW BUZZ.</span>
+                <span>WITH BIOBUZZ?</span>
               </h2>
               <p>
                 The 2026–2027 FIRST Tech Challenge season is BIOBUZZ™ presented by RTX, part of
@@ -297,7 +269,7 @@ export default function Home() {
                 Explore BIOBUZZ <ArrowUpRight size={18} />
               </a>
               <div className="season-note">
-                <span className="dot" /> EXPLORE OUR WORKSHOP & CAD PHOTOS BELOW
+                <span className="dot" /> EXPLORE THE CHALLENGE & OUR BUILD
               </div>
             </div>
             <a
@@ -317,6 +289,12 @@ export default function Home() {
               </span>
             </a>
           </div>
+          <details className="page-disclosure wrap season-disclosure">
+            <summary>How BIOBUZZ works <Plus size={22} /></summary>
+            <BioBuzzGuide onField={() => setPopup({ type: "gallery", index: 6 })} />
+          </details>
+          <details className="page-disclosure wrap season-disclosure">
+            <summary>Inside the workshop & playing field <Plus size={22} /></summary>
           <div className="wrap build-spotlight">
             <button className="build-photo" onClick={() => setPopup({ type: "gallery", index: 1 })}>
               <img
@@ -339,13 +317,13 @@ export default function Home() {
                 CAD on screen. Components on the table. A closer look at the hands-on work behind
                 the build.
               </p>
-              <a
-                href="#gallery"
+              <Link
+                href="/gallery"
                 className="text-link"
                 onClick={() => setGalleryFilter("Workshop & CAD")}
               >
                 See the build photos <ArrowUpRight size={18} />
-              </a>
+              </Link>
             </div>
           </div>
           <div className="wrap field-references">
@@ -372,7 +350,14 @@ export default function Home() {
               ))}
             </div>
           </div>
+          </details>
         </section>
+        <RobotShowcase
+          onView={(index) => setPopup({ type: "gallery", index: hornetStartIndex + index })}
+          onGallery={() => setGalleryFilter("Hornet V1")}
+        />
+        </>}
+        {page === "/gallery" &&
         <section id="gallery" className="wrap section gallery">
           <div className="section-top">
             <div>
@@ -399,6 +384,10 @@ export default function Home() {
           <div className="gallery-grid photo-gallery">
             {galleryItems
               .map((item, index) => ({ item, index }))
+              .sort(
+                (a, b) =>
+                  Number(b.item.category === "Hornet V1") - Number(a.item.category === "Hornet V1"),
+              )
               .filter(
                 ({ item }) => galleryFilter === "All photos" || item.category === galleryFilter,
               )
@@ -409,6 +398,7 @@ export default function Home() {
                   onClick={() => setPopup({ type: "gallery", index })}
                 >
                   <img src={item.src} alt={item.title} loading="lazy" />
+                  <FieldBadge role={members.find((member) => member.image === item.src)?.fieldRole} />
                   <span>
                     {item.title} <ArrowUpRight size={20} />
                   </span>
@@ -419,7 +409,9 @@ export default function Home() {
             Workshop moments, CAD exploration, and the people behind the build. Field diagrams and
             the sample robot are reference imagery.
           </p>
-        </section>
+        </section>}
+        {page === "/team" && <details className="page-disclosure wrap">
+          <summary>Awards & milestones <Plus size={22} /></summary>
         <section id="awards" className="wrap awards section">
           <div>
             <div className="section-index">05 / OUR JOURNEY</div>
@@ -447,6 +439,9 @@ export default function Home() {
             </a>
           </div>
         </section>
+        </details>}
+        {page === "/support" && <details className="page-disclosure wrap partner-disclosure">
+          <summary>Partner with Totus Tuus <Plus size={22} /></summary>
         <section id="sponsors" className="sponsors section">
           <div className="wrap">
             <div className="section-top">
@@ -482,6 +477,9 @@ export default function Home() {
             </div>
           </div>
         </section>
+        </details>}
+        {page === "/season" && <details className="page-disclosure wrap">
+          <summary>News & resources from FIRST <Plus size={22} /></summary>
         <section id="news" className="wrap section news">
           <div className="section-top">
             <div>
@@ -555,6 +553,8 @@ export default function Home() {
             </a>
           </div>
         </section>
+        </details>}
+        {page === "/support" && <>
         <section id="support" className="support section wrap">
           <Geometry />
           <div className="section-index">THE NEXT CHAPTER STARTS WITH YOU</div>
@@ -569,64 +569,66 @@ export default function Home() {
             Be part of the Totus Tuus journey.
           </p>
           <div className="support-actions">
-            <button className="button mint" onClick={support}>
-              <Heart size={18} /> Donate to the team <ArrowUpRight size={18} />
-            </button>
+            <a className="button mint" href={donateUrl} target="_blank" rel="noreferrer">
+              <Heart size={18} /> Donate on GoFundMe <ArrowUpRight size={18} />
+            </a>
             <button className="button outline-button" onClick={contact}>
               Become a partner <ArrowUpRight size={18} />
             </button>
           </div>
-          <small>Donation link awaiting team verification.</small>
+          <small>Secure donations are handled by GoFundMe.</small>
         </section>
+        <TeamContact onContact={contact} />
+        </>}
+        {!links.some((link) => link.path === page) && <section className="wrap section"><h1>PAGE NOT FOUND.</h1><p>This connection doesn’t exist yet.</p><Link href="/" className="button mint">Back home <ArrowUpRight size={18} /></Link></section>}
       </main>
       <footer className="footer wrap">
         <div className="footer-top">
           <div>
-            <a className="brand" href="#top">
+            <Link className="brand" href="/">
               <img src="/images/crest-cutout.png" alt="" />
               <span>
                 TOTUS TUUS<small>FIRST TECH CHALLENGE · 19168</small>
               </span>
-            </a>
-            <p>More than a robot. A team.</p>
+            </Link>
+            <p className="footer-catchphrase">INNOVATE. ITERATE. INSPIRE.</p>
+            <small className="footer-student-line">Built by students. For students.</small>
           </div>
           <div>
             <span className="footer-label">EXPLORE</span>
-            <a href="#team">Our team</a>
-            <a href="#season">Our season</a>
-            <a href="#awards">Awards & milestones</a>
+            <Link href="/team">Our team & mission</Link>
+            <Link href="/season">Our season & Hornet</Link>
+            <Link href="/gallery">Photo gallery</Link>
           </div>
           <div>
             <span className="footer-label">GET INVOLVED</span>
-            <a href="#sponsors">Sponsorship</a>
-            <button onClick={support}>Support the team</button>
+            <Link href="/support">Sponsorship</Link>
+            <a href={donateUrl} target="_blank" rel="noreferrer">
+              Support the team
+            </a>
             <button onClick={contact}>Contact us</button>
           </div>
           <div className="socials">
             <span className="footer-label">FOLLOW THE JOURNEY</span>
             <div>
-              {[
-                { name: "Instagram", icon: Instagram },
-                { name: "YouTube", icon: Youtube },
-                { name: "Email", icon: Mail },
-              ].map(({ name, icon: Icon }) => (
-                <button
-                  key={name}
-                  aria-label={name}
-                  onClick={() =>
-                    name === "Email"
-                      ? contact()
-                      : pending(
-                          `${name} — coming soon`,
-                          `The team’s verified ${name} link has not been provided yet. It will be added here when available.`,
-                        )
-                  }
+              {socialLinks.map((link) => (
+                <a
+                  key={link.name}
+                  href={link.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={link.name}
                 >
-                  <Icon size={19} />
-                </button>
+                  <SocialIcon name={link.name} />
+                </a>
               ))}
+              <a href={whatsappUrl} target="_blank" rel="noreferrer" aria-label="WhatsApp">
+                <span className="wa-mark">WA</span>
+              </a>
+              <a href={`mailto:${teamEmail}`} aria-label="Email">
+                <Mail size={19} />
+              </a>
             </div>
-            <small>Social links coming soon.</small>
           </div>
         </div>
         <div className="footer-bottom">
@@ -638,7 +640,7 @@ export default function Home() {
       <dialog
         ref={dialog}
         aria-modal="true"
-        aria-label="Totus Tuus details"
+        aria-label={popup?.type === "contact" ? "Contact Totus Tuus" : "Totus Tuus details"}
         tabIndex={-1}
         className="dialog"
         onCancel={() => setPopup(null)}
@@ -647,40 +649,31 @@ export default function Home() {
           <button className="dialog-close" aria-label="Close dialog" onClick={() => setPopup(null)}>
             <X />
           </button>
+          {popup?.type === "contact" && <ContactForm />}
           {popup?.type === "member" && (
             <>
               <div className="modal-portrait">
                 <img
-                  src={`/images/${people[popup.index].toLowerCase()}.png`}
-                  alt={people[popup.index]}
+                  src={members[popup.index].image}
+                  alt={members[popup.index].name}
                 />
+                <FieldBadge role={members[popup.index].fieldRole} />
               </div>
-              <div className="eyebrow">MEET TOTUS TUUS</div>
-              <h2>{people[popup.index]}</h2>
-              <p className="pending-label">Role & biography coming soon</p>
-              <p>
-                This profile is ready for a team-approved bio, role, interests, and favorite
-                robotics moments.
-              </p>
-            </>
-          )}
-          {popup?.type === "notice" && (
-            <>
-              <div className="eyebrow">TOTUS TUUS / 19168</div>
-              <h2>{popup.title}</h2>
-              <p>{popup.text}</p>
-              <button className="button mint" onClick={() => setPopup(null)}>
-                Got it <ArrowRight size={18} />
-              </button>
+              <div className="eyebrow">{members[popup.index].coach ? "MEET OUR COACH" : "MEET TOTUS TUUS"}</div>
+              <h2>{members[popup.index].name}</h2>
+              <MemberBadges specializations={members[popup.index].specializations} />
+              <p className="member-roles">{members[popup.index].roles.join(" · ")}</p>
+              <p className="member-bio">{members[popup.index].bio}</p>
             </>
           )}
           {popup?.type === "gallery" && (
             <>
-              <img
+              <div className="lightbox-photo"><img
                 className="lightbox-image"
                 src={galleryItems[popup.index].src}
                 alt={galleryItems[popup.index].title}
               />
+              <FieldBadge role={members.find((member) => member.image === galleryItems[popup.index].src)?.fieldRole} /></div>
               <div className="lightbox-bottom">
                 <button
                   aria-label="Previous image"

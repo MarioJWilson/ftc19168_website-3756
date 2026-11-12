@@ -1,3 +1,6 @@
+import { hornetPhotos } from "./robot";
+import { members } from "./members";
+
 export const galleryItems = [
   {
     src: "/images/workshop-02.jpg",
@@ -63,11 +66,11 @@ export const galleryItems = [
     description:
       "An illustrative sample robot supplied as a reference. This is not presented as Totus Tuus’s robot.",
   },
-  ...["Aiden", "Jared", "Mario", "Nicholas", "Peter", "Vivan", "Willy"].map((name) => ({
-    src: `/images/${name.toLowerCase()}.png`,
-    title: name,
+  ...members.map((member) => ({
+    src: member.image,
+    title: member.name,
     category: "Portraits",
-    description: `${name} — team portrait. Role and biography coming soon.`,
+    description: `${member.roles.join(" · ")} — ${member.bio}`,
   })),
   {
     src: "/images/crest.png",
@@ -75,9 +78,12 @@ export const galleryItems = [
     category: "Team identity",
     description: "The Totus Tuus crest — FIRST Tech Challenge Team 19168.",
   },
+  ...hornetPhotos,
 ];
+export const hornetStartIndex = galleryItems.length - hornetPhotos.length;
 export const galleryFilters = [
   "All photos",
+  "Hornet V1",
   "Workshop & CAD",
   "Game fields",
   "Portraits",

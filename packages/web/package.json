@@ -16,6 +16,7 @@
     "db:push": "bun --env-file=../../.env drizzle-kit push"
   },
   "dependencies": {
+    "@formspree/react": "^3.0.0",
     "@libsql/client": "^0.17.2",
     "@orpc/client": "^1.14.7",
     "@orpc/server": "^1.14.7",
